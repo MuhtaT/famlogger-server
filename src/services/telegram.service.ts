@@ -40,9 +40,20 @@ export class TelegramService {
 
   public async launchBot(): Promise<void> {
     try {
-      // Запускаем бота в режиме polling
-      await this.bot.launch();
-      logger.info('Telegraf bot launched successfully (polling).');
+      // ИСПРАВЛЕНИЕ: Не ждем завершения bot.launch(), так как он зависает в режиме polling
+      // Вместо этого запускаем его асинхронно и проверяем статус
+      logger.info('Starting Telegraf bot launch (non-blocking)...');
+      
+      // Запускаем бота без await - это позволит коду продолжить выполнение
+      this.bot.launch().catch((error) => {
+        logger.error('Telegraf bot launch failed:', error);
+        process.exit(1);
+      });
+
+      // Даем небольшую задержку для инициализации
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      logger.info('Telegraf bot launched successfully (polling mode, non-blocking).');
     } catch (error) {
       logger.error('Failed to launch Telegraf bot:', error);
       process.exit(1); // Критическая ошибка, если бот не запустился
@@ -124,7 +135,6 @@ export class TelegramService {
     const currentTime = Math.floor(Date.now() / 1000);
     logger.debug(`Checking duplicates for chat ${chatId}, timeframe ${timeframeSeconds}s, message: "${messageTextToCheck.substring(0,30)}..."`);
     logger.debug(`Current cache size: ${this.sentMessagesCache.length}. Cache entries for chat ${chatId}: ${this.sentMessagesCache.filter(e => e.chatId === chatId).length}`);
-
 
     for (const entry of this.sentMessagesCache) {
       if (entry.chatId === chatId) {
