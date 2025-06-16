@@ -73,8 +73,14 @@ export class TelegramService {
   public async sendMessage(
     chatId: string,
     text: string,
-    parseMode: 'HTML' | 'MarkdownV2' = 'HTML'
+    parseMode: 'HTML' | 'MarkdownV2' = 'HTML',
+    timeframeSeconds: number = 30
   ): Promise<{ success: boolean; data?: Message.TextMessage; error?: string; errorCode?: number }> {
+    if (this.checkDuplicate(chatId, text, timeframeSeconds)) {
+      logger.info('Duplicate found in cache, not sending to Telegram');
+      return { success: false, error: 'Duplicate found in cache' };
+    }
+
     try {
       logger.debug(`Attempting to send message via Telegraf to ${chatId}: "${text.substring(0, 50)}..." (parse_mode: ${parseMode})`);
       const sentMessage = await this.bot.telegram.sendMessage(chatId, text, {
